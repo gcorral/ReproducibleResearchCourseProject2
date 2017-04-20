@@ -23,7 +23,8 @@ characteristics of major storms and weather events in the United States,
 including when and where they occur, as well as estimates of any fatalities, 
 injuries, and property damage.
 
-
+Synopsis
+--------
 
 <!-- ## R Markdown
 
