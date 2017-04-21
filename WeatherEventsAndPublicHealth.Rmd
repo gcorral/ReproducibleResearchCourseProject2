@@ -50,7 +50,7 @@ Source data is [Storme Data][Storme Data]. The data come in the form of a comma-
 
 Donwload bzip2 file and load data:
 
-```{r}
+```{r cache=TRUE}
 if ( ! file.exists("data/StormData.csv.bz2") ) {
     print("Downloading the file from source:")
     download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",
@@ -61,15 +61,49 @@ if ( ! file.exists("data/StormData.csv.bz2") ) {
 if( ! "StormData" %in% ls() ) { 
   StormData = read.csv("data/StormData.csv.bz2")
 }
+```
+
+Filter colums:
+
+* EVTYPE (Storm Data Event)
+* BGN_DATE (Beginning time for each event )
+* FATALITIES (Fatalities caused by the event)
+* INJURIES (Injuries cused by the event)
+* PROPDMG (Property damage estimates in dollars)
+
+```{r}
+
+NormStormData <- StormData[,c("EVTYPE","BGN_DATE","FATALITIES","INJURIES","PROPDMG")] 
 
 ```
 
-Convert dates to data class:
+```{r} 
+
+
+```
+
+Convert dates to POSIXct format:
 
 ```{r}
 
 
-StormData$BGN_DATE <- as.Date(StormData$BGN_DATE, "$d/%m/%Y")
+NormStormData$BGN_DATE <- as.POSIXct(NormStormData$BGN_DATE, format="%e/%M/%Y %H:%M:%S")
+
+```
+
+
+Normalize storm data event (EVTYPE). There are a serie of different names for several 
+events. For example, THUNDERSTORM WIND events could be found as; TSTM WIND/HAIL, STM WIND 45,
+MARINE THUNDERSTORM WIND, MARINE TSTM WIND ...
+
+
+```{r}
+
+#NormStormData <- gsub("^TSTM WIND$", "THUNDERSTORM WIND", NormStormData$EVTYPE )
+#NormStormData <- gsub("^THUNDERSTORM WIND$", "THUNDERSTORM WIND", NormStormData$EVTYPE )
+#NormStormData <- gsub("^HEAT$", "", NormStormData$EVTYPE )
+
+
 
 ```
 
