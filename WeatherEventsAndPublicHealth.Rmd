@@ -58,13 +58,20 @@ if ( ! file.exists("data/StormData.csv.bz2") ) {
 }
 
 
-StormDif( ! "StormData" %in% ls() ) { 
-  ata = read.csv("data/StormData.csv.bz2")
+if( ! "StormData" %in% ls() ) { 
+  StormData = read.csv("data/StormData.csv.bz2")
+}
 
 ```
 
-}
+Convert dates to data class:
 
+```{r}
+
+
+StormData$BGN_DATE <- as.Date(StormData$BGN_DATE, "$d/%m/%Y")
+
+```
 
 
 Results
@@ -74,8 +81,7 @@ Results
 References
 ----------
 
-* [Storme Data][Storme Data]
-[Storme Data]: https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
+* [Storme Data]: https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
 
 <!-- ## R Markdown
 
