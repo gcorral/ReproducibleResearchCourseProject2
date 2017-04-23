@@ -1,0 +1,297 @@
+---
+title: "Incidence of Severe Weather Events Over Public Health and economic on EEUU"
+author: "Gregorio Corral"
+date: "22 de abril de 2017"
+output: html_document
+---
+
+Incidence of Severe Weather Events Over Public Health and economic on EEUU
+===========================================================================
+
+Storms and other severe weather events can cause both public health and 
+economic problems for communities and municipalities. Many severe events 
+can result in fatalities, injuries, and property damage, and preventing 
+such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric 
+Administration's (NOAA) storm database. This database tracks 
+characteristics of major storms and weather events in the United States, 
+including when and where they occur, as well as estimates of any fatalities, 
+injuries, and property damage.
+
+Synopsis
+--------
+
+The objetive of this analisys is to explore the NOAA Storm Database and answer 
+some basic questions about severe weather events. The questions are:
+
+1. Across the United States, which types of events (as indicated in the 𝙴𝚅𝚃𝚈𝙿𝙴 variable) are most harmful with respect to population health?
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+### Setting and libraries 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(reshape2)
+library(ggplot2)
+
+require(lubridate)
+
+```
+
+Data Processing
+---------------
+
+Source data is [Storme Data][Storme Data]. The data come in the form of a comma-separated-value file compressed via the bzip2 algorithm. 
+
+
+Donwload bzip2 file and load data:
+
+```{r cache=TRUE}
+if ( ! file.exists("StormData.csv.bz2") ) {
+    print("Downloading the file from source:")
+    download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",
+                  destfile = "StormData.csv.bz2")
+}
+
+
+if( ! "StormData" %in% ls() ) { 
+  StormData = read.csv("StormData.csv.bz2")
+}
+```
+
+Filter colums:
+
+* EVTYPE (Storm Data Event)
+* BGN_DATE (Beginning time for each event )
+* FATALITIES (Fatalities caused by the event)
+* INJURIES (Injuries cused by the event)
+* PROPDMG (Property damage estimates in dollars)
+
+```{r}
+
+NormStormData <- StormData[,c("EVTYPE","BGN_DATE","FATALITIES","INJURIES","PROPDMG")] 
+
+```
+
+
+Convert dates to POSIXct format and add year colum:
+
+
+```{r}
+
+
+NormStormData$BGN_DATE <- as.POSIXct(NormStormData$BGN_DATE, format="%e/%M/%Y %H:%M:%S")
+NormStormData$YEAR = year(NormStormData$BGN_DATE)
+
+```
+
+Remove summary entries: 
+
+```{r}
+
+
+NormStormData <- NormStormData[-grep("^.*(SUMMARY|Summary).*$",NormStormData$EVTYPE),]
+
+```
+
+Normalize storm data event (EVTYPE). There are a serie of different names for several 
+events. For example, THUNDERSTORM WIND events could be found as; TSTM WIND/HAIL, STM WIND 45,
+MARINE THUNDERSTORM WIND, MARINE TSTM WIND ...
+
+
+```{r}
+
+
+NormStormData$EVTYPE <- gsub("^.*(MICROBURST|TORNDA|TORNADO|WIND|LIG(H|N)T(N|)ING|T(H|)U(N|)(DER|ER|DEER|DERE)(STORM|STROM|TORM)|TSTM|HAIL).*$", 
+                             "WIND", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(WINT(ER|RY)|ICE|AVALANC(H|)E|SNOW|BLIZZARD|FREEZ|ICY|FROST).*$", 
+                             "WINTER", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(COLD|HEAT|HOT|TEMPERATURE|COOL|WARM).*$", 
+                             "TEMPERATURE", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(FLOOD| FLD).*$", 
+                             "FLOOD", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(TIDE|COASTAL|TSUNAMI|RIP CURRENT|MARINE|WATERSPOUT|SURF|SLEET|SEAS|(HIGH|RISING|HEAVY) (WAVES|SWELLS|WATER)).*$", "MARINE", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(TROPICAL|HURRICANE|STORM SURGE|TYPHOON).*$", 
+                             "CYCLONES", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(RAIN|PRECIP).*$", 
+                             "RAIN", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*FIRE.*$", 
+                             "FIRE", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(DROUGHT|DUST).*$", 
+                             "DUST", NormStormData$EVTYPE, ignore.case = TRUE)
+
+#NormStormData$EVTYPE <- gsub("^.*(LANDSLIDE|MUD.*SLIDE).*$", 
+#                             "LANDSLIDE", NormStormData$EVTYPE, ignore.case = TRUE)
+
+NormStormData$EVTYPE <- gsub("^.*(FOG|VOG).*$", 
+                             "FOG", NormStormData$EVTYPE, ignore.case = TRUE)
+
+#NormStormData$EVTYPE <- gsub("^.*(VOLCANIC).*$", 
+#                             "VOLCANIC", NormStormData$EVTYPE, ignore.case = TRUE)
+
+#NormStormData$EVTYPE <- gsub("^.*(WET).*$", 
+#                             "WET", NormStormData$EVTYPE, ignore.case = TRUE)
+
+#NormStormData$EVTYPE <- gsub("^.*(DRY).*$", 
+#                             "DRY", NormStormData$EVTYPE, ignore.case = TRUE)
+
+#NormStormData$EVTYPE <- gsub("^.*(FUNNEL).*$", 
+#                             "FUNNEL CLOUD", NormStormData$EVTYPE, ignore.case = TRUE)
+
+
+#evtype_set <- c("WIND","WINTER","TEMPERATURE","FLOOD","MARINE","CYCLONES","RAIN","FIRE","DUST","LANDSLIDE","FOG","VOLCANIC","WET","DRY","FUNNEL CLOUD")
+
+
+evtype_set <- c("WIND","WINTER","TEMPERATURE","FLOOD","MARINE","CYCLONES","RAIN","FIRE","DUST","FOG")
+
+NormStormData$EVTYPE[ ! NormStormData$EVTYPE %in% evtype_set ] <- "OTHER"
+
+#NormStormData$EVTYPE <- gsub("^.*WINT(ER|RY)|ICE|AVALANC(H|)E|SNOW|BLIZZARD|FREEZ|ICY|FROST", 
+#                             "WINTER.*$", NormStormData$EVTYPE )
+
+#NormStormData$EVTYPE <- gsub("^.*COLD|HEAT|HOT|TEMPERATURE|COOL|WARM.*$", 
+#                             "EXTREME TEMP", NormStormData$EVTYPE )
+
+#NormStormData$EVTYPE <- gsub("^.*FLOOD| FLD.*$", "FLOOD", NormStormData$EVTYPE )
+
+```
+
+Reduce Data set.
+
+Remove data after 1992:
+
+```{r}
+
+ReducedStormData <- NormStormData[NormStormData$YEAR > 1992, ]
+
+```
+
+
+
+Results
+-------
+
+Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+Respect to injurities:
+
+```{r}
+
+totalInjuritiesByEvent <- with(ReducedStormData, tapply(INJURIES, EVTYPE, FUN=sum))
+
+#sort(totalInjuritiesByEvent, decreasing=TRUE)[1:5]
+
+eventsWithMostInjurities <- names(sort(totalInjuritiesByEvent, decreasing=TRUE)[1:5])
+
+subReducedStormDataInj <- ReducedStormData[ReducedStormData$EVTYPE %in% eventsWithMostInjurities,]
+
+InjuriesByEventsAndYearTab  <- with(subReducedStormDataInj, 
+                          tapply(INJURIES, list(YEAR, EVTYPE), FUN=sum))
+
+dfIBEAY <- data.frame(InjuriesByEventsAndYearTab)
+
+dfIBEAY$YEAR <- rownames(dfIBEAY)
+
+dfIBEAY <- melt(dfIBEAY, id=c("YEAR"), measure.vars=eventsWithMostInjurities)
+
+pdfIBEAY <- ggplot(dfIBEAY, aes(x=YEAR, y=value, color=variable, group = variable)) + 
+            geom_point() +  
+            geom_line() + 
+            labs(x = "Year", y = "Injurities", title = "Injurities per Year")
+
+print(pdfIBEAY)
+
+png("Injuries.png")
+
+```
+
+Respect to fatalities:
+
+```{r}
+                          
+
+totalFatalitiesByEvent <- with(ReducedStormData, tapply(FATALITIES, EVTYPE, FUN=sum))
+
+eventsWithMostFatalities <- names(sort(totalFatalitiesByEvent, decreasing=TRUE)[1:5])
+
+subReducedStormDataFat <- ReducedStormData[ReducedStormData$EVTYPE %in% eventsWithMostFatalities,]
+
+
+FatalitiesByEventsAndYearTab  <- with(subReducedStormDataFat, 
+                            tapply(FATALITIES, list(YEAR, EVTYPE), FUN=sum))
+
+dfFBEAY <- data.frame(FatalitiesByEventsAndYearTab)
+
+dfFBEAY$YEAR <- rownames(dfFBEAY)
+
+dfFBEAY <- melt(dfFBEAY, id=c("YEAR"), measure.vars=eventsWithMostFatalities)
+
+pdfFBEAY <- ggplot(dfFBEAY, aes(x=YEAR, y=value, color=variable, group = variable)) + 
+            geom_point() +  
+            geom_line() + 
+            labs(x = "Year", y = "Fatalities", title = "Fatalities per Year")
+
+print(pdfFBEAY)
+
+png("Fatalities.png")
+
+```
+
+Respect to property:
+
+```{r}
+
+totalPropertyByEvent <- with(ReducedStormData, tapply(PROPDMG, EVTYPE, FUN=sum))
+
+eventsWithMostProperty <- names(sort(totalPropertyByEvent, decreasing=TRUE)[1:5])
+
+subReducedStormDataPro <- ReducedStormData[ReducedStormData$EVTYPE %in% eventsWithMostProperty,]
+
+PropertyByEventsAndYearTab  <- with(subReducedStormDataPro, 
+                            tapply(PROPDMG, list(YEAR, EVTYPE), FUN=sum))
+
+#FatalitiesByEventsAndYearAgre <- aggregate(FATALITIES  ~ INJURIES, data=ReducedStormData, 
+#                                            FUN=sum, na.rm=TRUE)
+
+dfPBEAY <- data.frame(PropertyByEventsAndYearTab)
+
+dfPBEAY$YEAR <- rownames(dfPBEAY)
+
+dfPBEAY <- melt(dfPBEAY, id=c("YEAR"), measure.vars=eventsWithMostProperty)
+
+pdfPBEAY <- ggplot(dfPBEAY, aes(x=YEAR, y=value, color=variable, group = variable)) + 
+            geom_point() +  
+            geom_line() + 
+            labs(x = "Year", y = "Property", title = "Property per Year")
+
+print(pdfPBEAY)
+
+png("Property.png")
+
+```
+
+## Conclusion
+
+Respect to injurities the most harmful  event are wind events, although in some year the most harmful had been th flood events.
+
+Respect to fatalities the most harmful event at 2011 are wind events, although in 1995 the most harmful had been the temperature events.
+
+Finaly, in respect to property, the wind events are the most harmful, followed by flood events.
+
+References
+----------
+
+* [Storme Data]: https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2
+
